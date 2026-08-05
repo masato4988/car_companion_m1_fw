@@ -1,0 +1,42 @@
+21:35:26.022 -> ets Jun  8 2016 00:22:57
+21:35:26.022 -> 
+21:35:26.022 -> rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+21:35:26.022 -> configsip: 0, SPIWP:0xee
+21:35:26.022 -> clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+21:35:26.022 -> mode:DIO, clock div:1
+21:35:26.055 -> load:0x3fff0030,len:4876
+21:35:26.055 -> ho 0 tail 12 room 4
+21:35:26.055 -> load:0x40078000,len:16532
+21:35:26.055 -> load:0x40080400,len:3500
+21:35:26.055 -> entry 0x400805b4
+21:35:27.267 -> 
+21:35:27.267 -> ===== Car Companion =====
+21:35:27.267 -> [BLE] Init
+21:35:27.518 -> [MAIN] BLE initialized
+21:35:27.518 -> [BLE] Scanning...
+21:35:27.596 -> [SCAN] Name: , Address: 0f:b3:53:90:f4:46, manufacturer data: 060001092022b1055b9889493ff533b959c08a0c9d14f51a31f184e9ee
+21:35:27.596 -> [SCAN] Name: AFB6223, Address: c2:5b:d8:20:3b:66, serviceUUID: 0xfff0
+21:35:27.596 -> [SCAN] Name: , Address: 08:d9:07:88:f2:81, manufacturer data: 06000109202235c71c53b4532af3ac5a425c5e63fe1682c24996a48e04
+21:35:27.596 -> [SCAN] Name: , Address: 79:84:95:6e:2f:47, manufacturer data: 4c0010067d1e6d8f39fb, txPower: 0
+21:35:27.725 -> [SCAN] Name: , Address: 6e:01:87:8f:98:e5, manufacturer data: 4c0010052a1cd84e32, txPower: 12
+21:35:27.863 -> [SCAN] Name: , Address: 58:e8:16:e0:5e:db, manufacturer data: 4c001006701e297eacbd, txPower: 0
+21:35:28.406 -> [SCAN] Name: OBDII, Address: bc:fd:fd:88:dd:9f, serviceUUID: 0xfff0
+21:35:28.406 -> [SCAN] ELM327 FOUND
+21:35:28.406 -> [BLE] Connecting...
+21:35:29.276 -> [BLE] Connected
+21:35:29.276 -> [BLE] Connect success
+21:35:29.276 -> [BLE] RSSI = -37
+21:35:29.276 -> [MAIN] BLE connected
+21:35:29.276 -> 
+21:35:29.276 -> ===== SERVICES =====
+21:35:29.447 -> Service : 0x1800
+21:35:29.681 ->     Characteristic : 0x2a00   [R][W]
+21:35:29.681 -> 
+21:35:29.681 -> Service : 0xfff0
+21:35:29.866 ->     Characteristic : 0xfff1   [R][N]
+21:35:29.866 ->     Characteristic : 0xfff2   [W]
+21:35:29.866 -> 
+21:35:29.866 -> Service : 0xae00
+21:35:30.039 ->     Characteristic : 0xae01   
+21:35:30.039 ->     Characteristic : 0xae02   [N]
+21:35:30.078 -> 
