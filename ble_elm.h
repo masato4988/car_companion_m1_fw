@@ -26,6 +26,7 @@ public:
     bool write(const String& data);
     bool available() const;
     String read();
+    void clearRxBuffer();
 
     bool subscribe();
 

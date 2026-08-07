@@ -9,6 +9,7 @@ static const char* TARGET_MAC = "bc:fd:fd:88:dd:9f";
 
 const NimBLEAdvertisedDevice* g_advDevice = nullptr;
 bool g_found = false;
+String g_rxBuffer;
 
 class ClientCallbacks : public NimBLEClientCallbacks
 {
@@ -53,13 +54,25 @@ void notifyCallback(
     size_t length,
     bool isNotify)
 {
-    Serial.print("[BLE] RX : ");
+    Serial.println("========== NOTIFY ==========");
 
+    Serial.printf("Length = %u\n", length);
+
+    Serial.print("HEX : ");
+    for (size_t i = 0; i < length; i++)
+    {
+        Serial.printf("%02X ", data[i]);
+    }
+    Serial.println();
+
+    Serial.print("ASCII : ");
     for (size_t i = 0; i < length; i++)
     {
         Serial.print((char)data[i]);
-    }
 
+        // ★受信バッファへ追加
+        g_rxBuffer += (char)data[i];
+    }
     Serial.println();
 }
 
@@ -112,6 +125,16 @@ bool BleElm::connect()
     Serial.println("[BLE] Connect success");
     Serial.printf("[BLE] RSSI = %d\n", client->getRssi());
 
+    if (!discoverServices())
+    {
+        return false;
+    }
+    if (!discoverCharacteristics())
+    
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -126,8 +149,7 @@ void BleElm::printServices()
     Serial.println();
     Serial.println("===== SERVICES =====");
 
-    const std::vector<NimBLERemoteService*>& services =
-        client->getServices(true);
+    const auto& services = client->getServices(true);
 
     if (services.empty())
     {
@@ -139,9 +161,7 @@ void BleElm::printServices()
     {
         Serial.print("Service : ");
         Serial.println(service->getUUID().toString().c_str());
-
-        const std::vector<NimBLERemoteCharacteristic*>& chars =
-            service->getCharacteristics(true);
+        const auto& chars = service->getCharacteristics(true);
 
         for (auto chr : chars)
         {
@@ -150,34 +170,13 @@ void BleElm::printServices()
 
             Serial.print("   ");
 
-            if (chr->canRead())   Serial.print("[R]");
-            if (chr->canWrite())  Serial.print("[W]");
-            if (chr->canNotify()) Serial.print("[N]");
+            if (chr->canRead())     Serial.print("[R]");
+            if (chr->canWrite())    Serial.print("[W]");
+            if (chr->canNotify())   Serial.print("[N]");
             if (chr->canIndicate()) Serial.print("[I]");
-
 
             Serial.println();
         }
-
-        // if (service->getUUID().toString() == "0xfff0")
-        // {
-        //     const auto& chars = service->getCharacteristics(true);
-
-        //     for (auto chr : chars)
-        //     {
-        //         if (chr->getUUID().toString() == "0xfff2")
-        //         {
-        //             txChar = chr;
-        //             Serial.println("[BLE] TX Characteristic found");
-        //         }
-
-        //         if (chr->getUUID().toString() == "0xfff1")
-        //         {
-        //             rxChar = chr;
-        //             Serial.println("[BLE] RX Characteristic found");
-        //         }
-        //     }
-        // }
 
         Serial.println();
     }
@@ -203,7 +202,7 @@ bool BleElm::write(const String& data)
     bool result = txChar->writeValue(
         (uint8_t*)data.c_str(),
         data.length(),
-        false);
+        true);
 
     if (!result)
     {
@@ -216,6 +215,23 @@ bool BleElm::write(const String& data)
     return true;
 }
 
+bool BleElm::available() const
+{
+    return !g_rxBuffer.isEmpty();
+}
+
+String BleElm::read()
+{
+    String str = g_rxBuffer;
+    g_rxBuffer = "";
+    return str;
+}
+
+void BleElm::clearRxBuffer()
+{
+    g_rxBuffer = "";
+}
+
 bool BleElm::subscribe()
 {
     if (rxChar == nullptr)
@@ -224,11 +240,11 @@ bool BleElm::subscribe()
         return false;
     }
 
-    if (!rxChar->canNotify())
-    {
-        Serial.println("[BLE] RX cannot notify");
-        return false;
-    }
+    // if (!rxChar->canNotify())
+    // {
+    //     Serial.println("[BLE] RX cannot notify");
+    //     return false;
+    // }
 
     if (!rxChar->subscribe(true, notifyCallback))
     {
@@ -262,6 +278,102 @@ bool BleElm::scan()
         {
             return false;
         }
+    }
+
+    return true;
+}
+
+bool BleElm::discoverServices()
+{
+    if (client == nullptr)
+    {
+        Serial.println("[BLE] Client is null");
+        return false;
+    }
+
+    uartService = nullptr;
+
+    const auto& services = client->getServices(true);
+
+    if (services.empty())
+    {
+        Serial.println("[BLE] No services");
+        return false;
+    }
+
+    for (auto service : services)
+    {
+        String uuid = service->getUUID().toString().c_str();
+        uuid.toLowerCase();
+
+        Serial.print("[BLE] Check Service : ");
+        Serial.println(uuid);
+
+        if (uuid == "0xfff0")
+        {
+            uartService = service;
+
+            Serial.println("[BLE] UART Service Found");
+
+            return true;
+        }
+    }
+
+    Serial.println("[BLE] UART Service Not Found");
+
+    return false;
+}
+
+bool BleElm::discoverCharacteristics()
+{
+    if (uartService == nullptr)
+    {
+        Serial.println("[BLE] UART Service is null");
+        return false;
+    }
+
+    txChar = nullptr;
+    rxChar = nullptr;
+
+    const auto& chars = uartService->getCharacteristics(true);
+
+    if (chars.empty())
+    {
+        Serial.println("[BLE] No Characteristics");
+        return false;
+    }
+
+    for (auto chr : chars)
+    {
+        String uuid = chr->getUUID().toString().c_str();
+        uuid.toLowerCase();
+
+        Serial.print("[BLE] Check Characteristic : ");
+        Serial.println(uuid);
+
+        if (uuid == "0xfff1")
+        {
+            rxChar = chr;
+            Serial.println("[BLE] RX Characteristic Found");
+        }
+
+        if (uuid == "0xfff2")
+        {
+            txChar = chr;
+            Serial.println("[BLE] TX Characteristic Found");
+        }
+    }
+
+    if (txChar == nullptr)
+    {
+        Serial.println("[BLE] TX Characteristic Not Found");
+        return false;
+    }
+
+    if (rxChar == nullptr)
+    {
+        Serial.println("[BLE] RX Characteristic Not Found");
+        return false;
     }
 
     return true;

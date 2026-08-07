@@ -1,48 +1,74 @@
-#include "ble_elm.h"
+#include "display_ssd1306.h"
+#include "eye_renderer.h"
 
-BleElm ble;
+DisplaySsd1306 oled;
+
+uint8_t buffer[128 * 64 / 8];
 
 void setup()
 {
     Serial.begin(115200);
-    delay(1000);
 
-    Serial.println();
-    Serial.println("===== Car Companion =====");
-
-    if (!ble.begin())
+    if (!oled.begin())
     {
-        Serial.println("[MAIN] BLE init failed");
-        while (1)
-        {
-            delay(1000);
-        }
+        Serial.println("OLED init failed");
+        while (1);
     }
-
-    Serial.println("[MAIN] BLE initialized");
-
-    if (!ble.connect())
-    {
-        Serial.println("[MAIN] BLE connect failed");
-        while (1)
-        {
-            delay(1000);
-        }
-    }
-
-    Serial.println("[MAIN] BLE connected");
-
-
-    ble.printServices();
     
-    ble.subscribe();
-
-    delay(500);
+    memset(buffer, 0x00, sizeof(buffer));
     
-    ble.write("ATI\r");
 }
 
 void loop()
 {
-    delay(1000);
+    EyeShape eye;
+
+    for (int i = 0; i < 1024; i++){
+        buffer[i] = 0;
+    }
+    
+    eye.cx = -30;
+    eye.cy = 0;
+    
+    eye.width = 40;
+    eye.height = 30;
+    
+    eye.radius = 10;
+    
+    eye.upperArc = 0;
+    eye.lowerArc = 0;
+    
+    EyeRenderer::drawEye(buffer, eye);
+    
+    eye.cx = 30;
+
+    EyeRenderer::drawEye(buffer, eye);
+    
+    oled.show(buffer);
+    
+    delay(950);
+    
+    for (int i = 0; i < 1024; i++){
+        buffer[i] = 0;
+    }
+    eye.cx = -30;
+    eye.cy = 0;
+    
+    eye.width = 40;
+    eye.height = 20;
+    
+    eye.radius = 10;
+    
+    eye.upperArc = 13;
+    eye.lowerArc = -13;
+    
+    EyeRenderer::drawEye(buffer, eye);
+    
+    eye.cx = 30;
+    
+    EyeRenderer::drawEye(buffer, eye);
+    
+    oled.show(buffer);
+    
+    delay(500);
 }
