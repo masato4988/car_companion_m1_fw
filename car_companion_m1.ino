@@ -38,6 +38,9 @@ void loop()
     eye.upperArc = 0;
     eye.lowerArc = 0;
     
+    eye.upperSlope = 0;
+    eye.lowerSlope = 0;
+
     EyeRenderer::drawEye(buffer, eye);
     
     eye.cx = 30;
@@ -55,16 +58,22 @@ void loop()
     eye.cy = 0;
     
     eye.width = 40;
-    eye.height = 20;
+    eye.height = 30;
     
     eye.radius = 10;
     
-    eye.upperArc = 13;
-    eye.lowerArc = -13;
+    // eye.upperArc = 10;
+    // eye.lowerArc = -10;
+
+    eye.upperSlope = 10;
+    eye.lowerSlope = -10;
     
     EyeRenderer::drawEye(buffer, eye);
     
     eye.cx = 30;
+
+    eye.upperSlope = -10;
+    eye.lowerSlope = 10;
     
     EyeRenderer::drawEye(buffer, eye);
     

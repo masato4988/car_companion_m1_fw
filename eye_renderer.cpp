@@ -1,4 +1,5 @@
 #include "eye_renderer.h"
+#include "math.h"
 
 void EyeRenderer::drawEye(
     uint8_t* buffer,
@@ -37,6 +38,22 @@ void EyeRenderer::drawEye(
         eye.width,
         eye.height,
         eye.lowerArc);
+
+    applyUpperSlope(
+        buffer,
+        x,
+        y,
+        eye.width,
+        eye.height,
+        eye.upperSlope);
+
+    applyLowerSlope(
+        buffer,
+        x,
+        y,
+        eye.width,
+        eye.height,
+        eye.lowerSlope);
 }
 
 //private
@@ -70,9 +87,9 @@ void EyeRenderer::fillRect(
     int w,
     int h)
 {
-    for(int yy = y; yy <= y + h; yy++)
+    for(int yy = y; yy < y + h; yy++)
     {
-        for(int xx = x; xx <= x + w; xx++)
+        for(int xx = x; xx < x + w; xx++)
         {
             setPixel(buffer, xx, yy);
         }
@@ -109,20 +126,20 @@ void EyeRenderer::applyRoundCorner(
             // 右上
             clearPixel(
                 buffer,
-                x + w - r + dx,
+                x + (w - 1) - r + dx,
                 y + r - dy);
 
             // 左下
             clearPixel(
                 buffer,
                 x + r - dx,
-                y + h - r + dy);
+                y + (h - 1) - r + dy);
 
             // 右下
             clearPixel(
                 buffer,
-                x + w - r + dx,
-                y + h - r + dy);
+                x + (w - 1) - r + dx,
+                y + (h - 1) - r + dy);
         }
     }
 }
@@ -179,7 +196,7 @@ void EyeRenderer::applyLowerArc(
 
             int offset = (int)(lowerCurve * t * t + 0.5f);
 
-            for (int yy = 0; yy <= offset; yy++)
+            for (int yy = 0; yy < offset; yy++)
             {
                 clearPixel(
                     buffer,
@@ -204,13 +221,87 @@ void EyeRenderer::applyLowerArc(
             // 左右では下端、中央では curve ピクセル上になる
             int curveY = y + h - 1 - (curve - offset);
 
-            for (int yy = curveY; yy <= y + h; yy++)
+            for (int yy = curveY; yy < y + h; yy++)
             {
                 clearPixel(
                     buffer,
                     x + xx,
                     yy);
             }
+        }
+    }
+}
+
+void EyeRenderer::applyUpperSlope(
+    uint8_t* buffer,
+    int x,
+    int y,
+    int w,
+    int h,
+    int upperSlope)
+{
+    if (upperSlope == 0)
+        return;
+
+    int slope = abs(upperSlope);
+    
+    for (int xx = 0; xx < w; xx++)
+    {
+        int offset = upperSlope * xx / (w - 1);
+
+        int cutY;
+
+        if (upperSlope > 0)
+        {
+            // 左が高く右が低い
+            cutY = y + offset;
+        }
+        else
+        {
+            // 左が低く右が高い
+            cutY = y + (offset + slope);
+        }
+
+        for (int yy = y; yy < cutY; yy++)
+        {
+            clearPixel(buffer, x + xx, yy);
+        }
+    }
+}
+
+void EyeRenderer::applyLowerSlope(
+    uint8_t* buffer,
+    int x,
+    int y,
+    int w,
+    int h,
+    int lowerSlope)
+{
+    if (lowerSlope == 0)
+        return;
+
+    int slope = abs(lowerSlope);
+
+    for (int xx = 0; xx < w; xx++)
+    {
+        int offset = lowerSlope * xx / (w - 1);
+
+        int cutY;
+
+        if (lowerSlope > 0)
+        {
+            // 左が高く右が低い
+            cutY = y + (h - 1) - offset;
+        }
+        else
+        {
+            // 左が低く右が高い
+            cutY = y + (h - 1) - (offset + slope);
+        }
+
+        for (int yy = cutY; yy < y + h; yy++)
+        {
+            clearPixel(buffer, x + xx, yy);
         }
     }
 }

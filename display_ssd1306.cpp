@@ -10,6 +10,9 @@ constexpr uint8_t OLED_ADDR = 0x3C;
 bool DisplaySsd1306::begin()
 {
     Wire.begin(21, 22);
+    Wire.setClock(1000000);
+    Serial.println(Wire.getClock());
+    
 
     delay(100);
 

@@ -15,7 +15,10 @@ struct EyeShape
     int upperArc;
     int lowerArc;
 
-    float angle;
+    // float angle;
+
+    int upperSlope;
+    int lowerSlope;
 };
 
 class EyeRenderer
@@ -68,4 +71,20 @@ private:
         int w,
         int h,
         int lowerCurve);
+
+    static void applyUpperSlope(
+        uint8_t* buffer,
+        int x,
+        int y,
+        int w,
+        int h,
+        int upperSlope);
+
+    static void applyLowerSlope(
+        uint8_t* buffer,
+        int x,
+        int y,
+        int w,
+        int h,
+        int lowerSlope);
 };
