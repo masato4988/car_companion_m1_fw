@@ -1,9 +1,13 @@
 #include "display_ssd1306.h"
 #include "eye_renderer.h"
+#include "face_animator.h"
 
 DisplaySsd1306 oled;
+FaceAnimator face;
 
 uint8_t buffer[128 * 64 / 8];
+
+constexpr uint32_t PERIOD = 16;
 
 void setup()
 {
@@ -14,70 +18,112 @@ void setup()
         Serial.println("OLED init failed");
         while (1);
     }
+
+    face.begin();
     
-    memset(buffer, 0x00, sizeof(buffer));
+    // memset(buffer, 0x00, sizeof(buffer));
     
 }
 
 void loop()
 {
-    EyeShape eye;
+    static uint32_t prevAnim = millis();
+    static uint32_t prevExpression = millis();
 
-    for (int i = 0; i < 1024; i++){
-        buffer[i] = 0;
+    static int expressionIndex = 0;
+
+    uint32_t now = millis();
+
+    //----------------------------------------
+    // FaceAnimator (100Hz)
+    //----------------------------------------
+
+    if (now - prevAnim >= 10)
+    {
+        prevAnim += 10;
+
+        face.update(0.010f);
+
+        memset(buffer, 0, sizeof(buffer));
+
+        EyeRenderer::drawEye(buffer, face.getLeftEye());
+        EyeRenderer::drawEye(buffer, face.getRightEye());
+
+        oled.show(buffer);
     }
-    
-    eye.cx = -30;
-    eye.cy = 0;
-    
-    eye.width = 40;
-    eye.height = 30;
-    
-    eye.radius = 10;
-    
-    eye.upperArc = 0;
-    eye.lowerArc = 0;
-    
-    eye.upperSlope = 0;
-    eye.lowerSlope = 0;
 
-    EyeRenderer::drawEye(buffer, eye);
-    
-    eye.cx = 30;
+    //----------------------------------------
+    // 1秒ごとに表情切替
+    //----------------------------------------
 
-    EyeRenderer::drawEye(buffer, eye);
-    
-    oled.show(buffer);
-    
-    delay(950);
-    
-    for (int i = 0; i < 1024; i++){
-        buffer[i] = 0;
+    if (now - prevExpression >= 2000)
+    {
+        prevExpression += 2000;
+
+        switch (expressionIndex)
+        {
+        case 0:
+            Serial.println("Neutral");
+            face.setExpression(
+                Expression::Neutral,
+                1.0f,
+                0.3f);
+            break;
+
+        case 1:
+            Serial.println("Smile");
+            face.setExpression(
+                Expression::Smile,
+                1.0f,
+                0.3f);
+            break;
+
+        case 2:
+            Serial.println("Happy");
+            face.setExpression(
+                Expression::Happy,
+                1.0f,
+                0.3f);
+            break;
+
+        case 3:
+            Serial.println("Sleepy");
+            face.setExpression(
+                Expression::Sleepy,
+                1.0f,
+                0.3f);
+            break;
+
+        case 4:
+            Serial.println("Angry");
+            face.setExpression(
+                Expression::Angry,
+                1.0f,
+                0.3f);
+            break;
+
+        case 5:
+            Serial.println("Sad");
+            face.setExpression(
+                Expression::Sad,
+                1.0f,
+                0.3f);
+            break;
+
+        case 6:
+            Serial.println("Surprise");
+            face.setExpression(
+                Expression::Surprise,
+                1.0f,
+                0.3f);
+            break;
+        }
+
+        expressionIndex++;
+
+        if (expressionIndex >= 7)
+        {
+            expressionIndex = 0;
+        }
     }
-    eye.cx = -30;
-    eye.cy = 0;
-    
-    eye.width = 40;
-    eye.height = 30;
-    
-    eye.radius = 10;
-    
-    // eye.upperArc = 10;
-    // eye.lowerArc = -10;
-
-    eye.upperSlope = 10;
-    eye.lowerSlope = -10;
-    
-    EyeRenderer::drawEye(buffer, eye);
-    
-    eye.cx = 30;
-
-    eye.upperSlope = -10;
-    eye.lowerSlope = 10;
-    
-    EyeRenderer::drawEye(buffer, eye);
-    
-    oled.show(buffer);
-    
-    delay(500);
 }
