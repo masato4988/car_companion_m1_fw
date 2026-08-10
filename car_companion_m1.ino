@@ -1,129 +1,119 @@
+#include "ble_elm.h"
+#include "obd.h"
 #include "display_ssd1306.h"
 #include "eye_renderer.h"
-#include "face_animator.h"
+#include "debug_overlay.h"
+#include "companion_controller.h"
 
+BleElm ble;
+Obd obd;
 DisplaySsd1306 oled;
-FaceAnimator face;
+CompanionController companion;
 
 uint8_t buffer[128 * 64 / 8];
-
-constexpr uint32_t PERIOD = 16;
 
 void setup()
 {
     Serial.begin(115200);
 
-    if (!oled.begin())
+    oled.begin();
+
+    ble.begin();
+
+    while(!ble.connect())
     {
-        Serial.println("OLED init failed");
-        while (1);
+        Serial.println("Retry...");
+        delay(1000);
     }
 
-    face.begin();
-    
-    // memset(buffer, 0x00, sizeof(buffer));
-    
+    obd.begin(&ble);
+
+    if(!obd.initialize())
+    {
+        Serial.println("OBD init failed");
+
+        while(1);
+    }
+
+    companion.begin();
 }
 
 void loop()
 {
-    static uint32_t prevAnim = millis();
-    static uint32_t prevExpression = millis();
+    //----------------------------------------
+    // 10ms周期
+    //----------------------------------------
 
-    static int expressionIndex = 0;
+    static uint32_t prev = millis();
 
     uint32_t now = millis();
 
-    //----------------------------------------
-    // FaceAnimator (100Hz)
-    //----------------------------------------
-
-    if (now - prevAnim >= 10)
+    if(now - prev < 10)
     {
-        prevAnim += 10;
-
-        face.update(0.010f);
-
-        memset(buffer, 0, sizeof(buffer));
-
-        EyeRenderer::drawEye(buffer, face.getLeftEye());
-        EyeRenderer::drawEye(buffer, face.getRightEye());
-
-        oled.show(buffer);
+        return;
     }
 
+    prev += 10;
+
     //----------------------------------------
-    // 1秒ごとに表情切替
+    // OBD更新
     //----------------------------------------
 
-    if (now - prevExpression >= 2000)
+    obd.update();
+
+    //----------------------------------------
+    // Companion更新
+    //----------------------------------------
+
+    companion.update(
+        obd.getRPM(),
+        obd.getSpeed(),
+        0.0f,                  // 後で getAccel() に変更
+        obd.getIdleStop(),
+        0.01f);
+
+    //----------------------------------------
+    // 描画
+    //----------------------------------------
+
+    memset(buffer, 0, sizeof(buffer));
+
+    if(companion.isDebugMode())
     {
-        prevExpression += 2000;
+        DebugOverlay::draw(
+            buffer,
+            companion.getBehaviorManager());
+    }
+    else
+    {
+        EyeRenderer::drawEye(
+            buffer,
+            companion.getLeftEye());
 
-        switch (expressionIndex)
-        {
-        case 0:
-            Serial.println("Neutral");
-            face.setExpression(
-                Expression::Neutral,
-                1.0f,
-                0.3f);
-            break;
+        EyeRenderer::drawEye(
+            buffer,
+            companion.getRightEye());
+    }
 
-        case 1:
-            Serial.println("Smile");
-            face.setExpression(
-                Expression::Smile,
-                1.0f,
-                0.3f);
-            break;
+    oled.show(buffer);
 
-        case 2:
-            Serial.println("Happy");
-            face.setExpression(
-                Expression::Happy,
-                1.0f,
-                0.3f);
-            break;
+    //----------------------------------------
+    // デバッグ表示（1秒毎）
+    //----------------------------------------
 
-        case 3:
-            Serial.println("Sleepy");
-            face.setExpression(
-                Expression::Sleepy,
-                1.0f,
-                0.3f);
-            break;
+    static uint32_t prevPrint = millis();
 
-        case 4:
-            Serial.println("Angry");
-            face.setExpression(
-                Expression::Angry,
-                1.0f,
-                0.3f);
-            break;
+    if(now - prevPrint >= 1000)
+    {
+        prevPrint += 1000;
 
-        case 5:
-            Serial.println("Sad");
-            face.setExpression(
-                Expression::Sad,
-                1.0f,
-                0.3f);
-            break;
+        Serial.print("RPM = ");
+        Serial.print(obd.getRPM());
 
-        case 6:
-            Serial.println("Surprise");
-            face.setExpression(
-                Expression::Surprise,
-                1.0f,
-                0.3f);
-            break;
-        }
+        Serial.print("  Speed = ");
+        Serial.print(obd.getSpeed());
 
-        expressionIndex++;
-
-        if (expressionIndex >= 7)
-        {
-            expressionIndex = 0;
-        }
+        Serial.print("  IdleStop = ");
+        Serial.println(obd.getIdleStop());
     }
 }

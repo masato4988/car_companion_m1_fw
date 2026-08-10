@@ -27,6 +27,31 @@ bool Obd::initialize()
     return true;
 }
 
+void Obd::update()
+{
+    rpm = getEngineRPM();
+    speed = getVehicleSpeed();
+
+    // 後で改善
+    idleStop = false;
+}
+
+
+float Obd::getRPM() const
+{
+    return rpm;
+}
+
+float Obd::getSpeed() const
+{
+    return speed;
+}
+
+bool Obd::getIdleStop() const
+{
+    return idleStop;
+}
+
 String Obd::sendCommand(const String& cmd)
 {
     if (ble == nullptr)
@@ -82,4 +107,25 @@ float Obd::getEngineRPM()
     float rpm = ((A * 256) + B) / 4.0f;
 
     return rpm;
+}
+
+float Obd::getVehicleSpeed()
+{
+    String response = sendCommand("010D");
+
+    int index = response.indexOf("41 0D");
+
+    if(index < 0)
+    {
+        return -1;
+    }
+
+    unsigned int A;
+
+    sscanf(
+        response.c_str() + index,
+        "41 0D %x",
+        &A);
+
+    return (float)A;
 }

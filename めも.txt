@@ -40,3 +40,193 @@
 21:35:30.039 ->     Characteristic : 0xae01   
 21:35:30.039 ->     Characteristic : 0xae02   [N]
 21:35:30.078 -> 
+
+
+
+          car_companion_m1.ino
+                  │
+                  ▼
+        CompanionController
+                  │
+    ┌─────────────┼─────────────┐
+    ▼             ▼             ▼
+VehicleState  Behavior      FaceAnimator
+  Manager      Manager
+                                  │
+                                  ▼
+                           EyeRenderer
+                                  │
+                                  ▼
+                          PrimitiveRenderer
+
+
+
+
+
+
+あ、idelstopに書いてありましたね（笑）
+ログを見てもその位置で出てます。
+これは、瞬き欲ゲージでやるようにしたいです。
+何か欲求等の増減させるパラメータを実装する時の手順一応聞いてもいいですか？
+もちろんです。
+ここは今後かなり重要になる部分なので、**「新しい欲求を追加する手順」**をテンプレート化しておくと開発が楽になります。
+---
+# ① 変数を追加する
+まずは `behavior_manager.h`
+```cpp
+float blinkDesire = 0.0f;
+```
+他にも
+```cpp
+float yawnDesire;
+float lookAroundDesire;
+float stretchDesire;
+```
+など、欲求ごとに追加していきます。
+---
+# ② Getterを追加（デバッグ用）
+```cpp
+float getBlinkDesire() const;
+```
+```cpp
+float BehaviorManager::getBlinkDesire() const
+{
+    return blinkDesire;
+}
+```
+DebugOverlayで表示できるようになります。
+---
+# ③ begin()で初期化
+```cpp
+blinkDesire = 0.0f;
+```
+---
+# ④ updateInternalState()で増減させる
+ここが一番重要です。
+例えば
+```cpp
+blinkDesire += dt * 0.15f;
+```
+アイドリング中なら
+```cpp
+if(state == VehicleState::Idle)
+{
+    blinkDesire += dt * 0.05f;
+}
+```
+走行中なら
+```cpp
+if(state == VehicleState::Cruising)
+{
+    blinkDesire += dt * 0.10f;
+}
+```
+など。
+ここは**「生理現象モデル」**を書く場所ですね。
+---
+# ⑤ Clamp
+最後に
+```cpp
+blinkDesire =
+    std::clamp(
+        blinkDesire,
+        0.0f,
+        1.0f);
+```
+---
+# ⑥ decideAction()で使う
+例えば
+```cpp
+if(blinkDesire >= 1.0f)
+{
+    blinkDesire = 0.0f;
+
+    currentAction = Action::Blink;
+    return;
+}
+```
+これだけで
+```
+欲求が溜まる
+↓
+Blink
+↓
+リセット
+```
+になります。
+---
+# ⑦ DebugOverlay追加
+バーを一本追加。
+```
+Excitement
+Sleepiness
+Boredom
+Blink Desire
+```
+これで動きが見えるようになります。
+---
+# この構造の良いところ
+BehaviorManagerが
+```
+状態
+↓
+欲求
+↓
+Action
+```
+という一本の流れになります。
+```
+VehicleState
+        │
+        ▼
+ updateInternalState()
+        │
+        ▼
+ boredom
+ sleepiness
+ blinkDesire
+ excitement
+        │
+        ▼
+ decideAction()
+        │
+        ▼
+ Action::Blink
+```
+かなり整理されています。
+---
+## さらに一歩先の話
+実はここまで来ると、欲求はすべて同じパターンです。
+```
+0～1で増減する値
+```
+ですよね。
+そのため将来的には
+```cpp
+struct Drive
+{
+    float value;
+
+    float increaseRate;
+    float decreaseRate;
+};
+```
+のような共通クラスにすることもできます。
+すると
+```cpp
+Drive blink;
+Drive yawn;
+Drive curiosity;
+Drive boredom;
+```
+だけで管理できます。
+ただ、**今はまだ変数を1個ずつ持つ方が読みやすい**です。
+---
+## 私なら次に追加する欲求
+順番としては
+1. ✅ Blink Desire（瞬き欲）
+2. Yawn Desire（あくび）
+3. LookAround Desire（周囲を見たい）
+4. Stretch Desire（伸びをしたい）
+の順ですね。
+特に **Blink Desire** はシステム全体の流れを確認するのにちょうどよいので、最初の「欲求」の実装として最適だと思います。
