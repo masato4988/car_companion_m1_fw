@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${default}",
+                "${workspaceFolder}/**"// /**とすることで、サブフォルダも対象になる。
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/**"
+                ]
+            },
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ]
+            
+        }
+    ],
+    "version": 4
+}
